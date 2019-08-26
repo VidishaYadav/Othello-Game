@@ -1,0 +1,56 @@
+ CODE FOR MAIL
+ 
+ !/usr/bin/python
+
+import picamera
+import RPi.GPIO as GPIO
+import time
+import smtplib  //(Simple Mail Transfer Protocol) used for sending mail to any device
+from email.mime.base import MIMEBase   //create mail and mime objects from scratch
+from email.mime.multipart import MIMEMultipart    //send email with attachment
+from email import encoders  //
+email_usr ='capstoneprojectappv76@gmail.com' 
+GPIO.setmode(GPIO.BCM)  //for GPIO numbering, choose BCM  other way id board
+GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
+
+
+try:
+    while True:
+         button_state = GPIO.input(23)
+         if button_state == False:
+             print('Wait...')
+             with picamera.PiCamera() as camera:
+               camera.resolution = (640, 480)  //The amount of detail that the camera can capture is called the resolution, and it is measured in pixels
+               camera.start_preview()
+               time.sleep(5)
+               camera.capture('/home/pi/Desktop/image.jpg')
+
+               camera.stop_preview()
+               
+               print('photo clicked...')
+               time.sleep(0.2)
+               filename = 'image.jpg'
+               attachment = open(filename,'rb')  //readbyte
+               msg = MIMEMultipart() 
+
+               part = MIMEBase('application','octet-stream')  //?
+               part.set_payload(attachment.read())
+               encoders.encode_base64(part)
+               part.add_header('Content-Disposition',"attachement; filename="+filename)  //?
+
+               msg.attach(part)
+               text = msg.as_string()
+
+               server =smtplib.SMTP('smtp.gmail.com',587)
+               server.starttls()  //required by gmail
+               server.login(email_usr,'Capstone76')
+
+
+
+               server.sendmail(email_usr,email_usr,text)
+               server.quit()
+               print('Mail sent')
+         
+except:
+    GPIO.cleanup()
+ 
